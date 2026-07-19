@@ -77,6 +77,9 @@ export default function Header() {
           <Link to="/verify-delivery" className="tracking-wide hover:text-[#D2B48C] transition-colors duration-300">
             Verify Delivery
           </Link>
+          <Link to="/zenvy-apparel" className="tracking-wide hover:text-[#D2B48C] transition-colors duration-300">
+            Collections
+          </Link>
         </nav>
 
         {/* Brand Logo */}
