@@ -1,3 +1,4 @@
+//frontend/src/components/EmptyCartPage.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Minus, Plus, ArrowRight, ShoppingBag } from 'lucide-react';
@@ -5,28 +6,17 @@ import { Trash2, Minus, Plus, ArrowRight, ShoppingBag } from 'lucide-react';
 // Import the BackgroundLayer we extracted earlier to prevent flickering
 import { BackgroundCart } from '../components/BackgroundCart'; 
 
-const CartPage = () => {
-  // Dummy data representing cart items (Replace with your actual state/context)
-  const cartItems = [
-    { 
-      id: 1, 
-      name: "Mens Casual Premium Slim Fit T-Shirts", 
-      price: 22.30, 
-      qty: 1, 
-      img: "https://fakestoreapi.com/img/71-3HjGNDUL._AC_SY879._SX._UX._SY._UY_.jpg", 
-      category: "Men's Wear" 
-    },
-    { 
-      id: 2, 
-      name: "Fjallraven - Foldsack No. 1 Backpack", 
-      price: 109.95, 
-      qty: 1, 
-      img: "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg", 
-      category: "Men's Wear" 
-    }
-  ];
+import { useCart } from '../context/CartContext';
+import { apiRequest } from '../utils/api';
 
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+const CartPage = () => {
+  const { cart, removeFromCart, updateQty } = useCart(); // Use real context state
+  // Dummy data representing cart items (Replace with your actual state/context)
+
+  const subtotal = cart.reduce((acc, item) => {
+    const price = typeof item.price === 'number' ? item.price : parseFloat(item.price);
+    return acc + (price * item.qty);
+  }, 0);
 
   return (
     <div className="relative min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
@@ -48,7 +38,7 @@ const CartPage = () => {
             Your Bag <ShoppingBag size={48} strokeWidth={1} className="text-[#A05D46]" />
           </h1>
           <p className="text-xs md:text-sm text-zinc-300 tracking-[0.3em] uppercase font-semibold drop-shadow-md">
-            {cartItems.length} Items / Carefully Curated
+            {cart.length} Items / Carefully Curated
           </p>
         </motion.div>
 
@@ -57,12 +47,12 @@ const CartPage = () => {
           
           {/* LEFT COLUMN: Cart Items */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            {cartItems.length === 0 ? (
+            {cart.length === 0 ? (
               <div className="text-white/60 text-sm tracking-widest uppercase py-12">
                 Your bag is currently empty.
               </div>
             ) : (
-              cartItems.map((item, index) => (
+              cart.map((item, index) => (
                 <motion.div 
                   key={item.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -70,53 +60,41 @@ const CartPage = () => {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="bg-white rounded-[2rem] p-4 pr-6 flex flex-col sm:flex-row gap-6 items-center shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
                 >
-                  {/* Product Image with Blend Mode Trick */}
                   <div className="w-full sm:w-32 aspect-[3/4] bg-[#f8f8f8] rounded-xl p-4 overflow-hidden shrink-0 border border-gray-100">
-                    <img 
-                      src={item.img} 
-                      alt={item.name}
-                      className="w-full h-full object-contain mix-blend-multiply"
-                    />
+                    <img src={item.img} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
                   </div>
 
-                  {/* Product Details */}
                   <div className="flex-1 flex flex-col w-full">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
-                        {item.category}
-                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{item.category}</span>
                       <p className="text-lg font-bold text-zinc-900 hidden sm:block">
-                        ${item.price.toFixed(2)}
+                        ${typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price || 0).toFixed(2)}
                       </p>
                     </div>
                     
-                    <h3 className="text-sm font-medium text-zinc-800 line-clamp-2 leading-relaxed mb-6">
-                      {item.name}
-                    </h3>
+                    <h3 className="text-sm font-medium text-zinc-800 line-clamp-2 leading-relaxed mb-6">{item.name}</h3>
 
-                    {/* Controls */}
                     <div className="flex items-center justify-between mt-auto">
-                      {/* Premium Quantity Toggle */}
                       <div className="flex items-center gap-4 bg-zinc-100 rounded-full px-4 py-2 border border-zinc-200">
-                        <button className="text-zinc-400 hover:text-black transition-colors">
+                        <button onClick={() => updateQty(item.id, -1)} className="text-zinc-400 hover:text-black transition-colors">
                           <Minus size={14} strokeWidth={3} />
                         </button>
-                        <span className="text-xs font-bold text-zinc-900 w-4 text-center">
-                          {item.qty}
-                        </span>
-                        <button className="text-zinc-400 hover:text-black transition-colors">
+                        <span className="text-xs font-bold text-zinc-900 w-4 text-center">{item.qty}</span>
+                        <button onClick={() => updateQty(item.id, 1)} className="text-zinc-400 hover:text-black transition-colors">
                           <Plus size={14} strokeWidth={3} />
                         </button>
                       </div>
 
-                      {/* Remove Button */}
-                      <button className="text-zinc-400 hover:text-[#A05D46] transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                      {/* FIXED REMOVE BUTTON */}
+                      <button 
+                        onClick={() => removeFromCart(item.id)} 
+                        className="text-zinc-400 hover:text-[#A05D46] transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+                      >
                         <Trash2 size={16} /> <span className="hidden sm:inline">Remove</span>
                       </button>
 
-                      {/* Mobile Price */}
                       <p className="text-lg font-bold text-zinc-900 sm:hidden">
-                        ${item.price.toFixed(2)}
+                        ${typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price || 0).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -132,7 +110,7 @@ const CartPage = () => {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="lg:col-span-4 sticky top-32"
           >
-            <div className="bg-[#A05D46]/20 backdrop-blur-xl border border-[#A05D46]/30 rounded-[2rem] p-8 shadow-2xl shadow-black/50">
+            <div className="bg-[#2a2622]/60 backdrop-blur-xl border border-[#F5F1E8]/10 rounded-[2rem] p-8 shadow-2xl shadow-black/50">
               <h2 className="text-xs tracking-[0.3em] uppercase font-bold text-[#F5F1E8] mb-8">
                 Order Summary
               </h2>
@@ -160,7 +138,37 @@ const CartPage = () => {
               </div>
 
               {/* Terracotta Action Button */}
-              <button className="w-full group relative overflow-hidden bg-[#A05D46] text-[#F5F1E8] px-8 py-4 rounded-full text-xs font-semibold tracking-widest uppercase shadow-lg shadow-[#A05D46]/20 transition-colors duration-300 hover:bg-[#844935] flex justify-center items-center gap-3">
+              <button 
+                onClick={async () => {
+                // Ensure we have cart items to process
+                if (cart.length === 0) return;
+
+                const orderPayload = {
+                  orderId: "ORD-" + Math.floor(Math.random() * 100000).toString(),
+                  productId: cart[0].id,
+                  productName: cart[0].name,
+                  customer: "c1", 
+                  supplier: "Supplier", 
+                  quantity: Number(cart[0].qty),
+                  price: subtotal,
+                  ethPrice: (subtotal / 3000).toFixed(4) + " ETH"
+                };
+                console.log("DEBUG: Payload being sent:", JSON.stringify(orderPayload, null, 2));
+
+                try {
+                  const response = await apiRequest('/api/orders', {
+                    method: 'POST',
+                    body: JSON.stringify(orderPayload)
+                  });
+                  alert('🚀 Order Placed & Escrow Locked!');
+                  window.location.href = '/track-orders';
+                } catch (err) {
+                  // This alert now shows the backend's specific error message
+                  alert('Checkout failed: ' + err.message);
+                }
+              }}
+                className="w-full group relative overflow-hidden bg-[#A05D46] text-[#F5F1E8] px-8 py-4 rounded-full text-xs font-semibold tracking-widest uppercase shadow-lg shadow-[#A05D46]/20 transition-colors duration-300 hover:bg-[#844935] flex justify-center items-center gap-3"
+              >
                 Secure Checkout 
                 <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
               </button>

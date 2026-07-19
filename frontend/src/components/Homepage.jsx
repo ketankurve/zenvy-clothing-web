@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from "react-router-dom";
@@ -7,7 +7,10 @@ import { Link } from "react-router-dom";
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import backgroundVideo from '../assets/Background.mp4';
+import backgroundVideo from '../assets/Background.mp4'
+
+// API Utility
+import { apiRequest } from '../utils/api';
 
 // Register ScrollTrigger so GSAP knows how to track the scrollbar
 gsap.registerPlugin(ScrollTrigger);
@@ -40,13 +43,33 @@ const imageReveal = {
 };
 
 const HomePage = () => {
+  // Full-Stack Connection State
+  const [ledgerData, setLedgerData] = useState(null);
+  const [apiStatus, setApiStatus] = useState('loading');
+
   // Refs for GSAP scroll tracking
   const heroRef = useRef();
   const videoRef = useRef();
-  
+
   // Refs for Horizontal Scroll Section
   const horizontalSectionRef = useRef();
   const horizontalScrollRef = useRef();
+
+  // Test the Backend & Blockchain Connection
+  useEffect(() => {
+    const fetchLedgerStatus = async () => {
+      try {
+        const data = await apiRequest('/api/ledger');
+        setLedgerData(data);
+        setApiStatus('connected');
+      } catch (err) {
+        console.error("Failed to pull blockchain data via backend:", err);
+        setApiStatus('error');
+      }
+    };
+
+    fetchLedgerStatus();
+  }, []);
 
   useGSAP(() => {
     // 1. GSAP Parallax effect for the video background
@@ -63,6 +86,7 @@ const HomePage = () => {
 
     // 2. Pinned Horizontal Scroll Physics
     const scrollContainer = horizontalScrollRef.current;
+    
     gsap.to(scrollContainer, {
       x: () => -(scrollContainer.scrollWidth - window.innerWidth) + "px",
       ease: "none",
@@ -73,7 +97,7 @@ const HomePage = () => {
         end: () => "+=" + scrollContainer.scrollWidth, 
       }
     });
-  }); 
+  });
 
   const categories = [
     { name: 'SHIRTS', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=400' },
@@ -97,7 +121,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="w-full bg-[#2C2420] text-[#F5F1E8] font-sans overflow-hidden">
+    <div className="w-full bg-[#2C2420] text-[#F5F1E8] font-sans overflow-hidden relative">
       
       {/* 1. Hero Section */}
       <section ref={heroRef} className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
@@ -116,7 +140,7 @@ const HomePage = () => {
               playsInline
               className="w-full h-full object-cover object-top origin-top scale-[1.1] opacity-75"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2C2420] via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
           </div>
         </motion.div>
 
@@ -147,19 +171,19 @@ const HomePage = () => {
           >
             Get peak comfy-chic with our fresh, sustainably crafted winter essentials.
           </motion.p>
-          
+          <Link to="/zenvy-apparel">
           <motion.button 
             variants={fadeInUp}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="group relative overflow-hidden bg-[#A05D46] text-[#F5F1E8] px-10 py-4 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_40px_rgba(160,93,70,0.3)] transition-all duration-300 hover:bg-[#844935]"
+            className="cursor-pointer group relative overflow-hidden bg-[#A05D46] text-[#F5F1E8] px-10 py-4 rounded-full text-xs font-bold tracking-widest uppercase shadow-[0_0_40px_rgba(160,93,70,0.3)] transition-all duration-300 hover:bg-[#844935]"
           >
-           <Link to="/zenvy-apparel"> 
-             <span className="relative z-10 flex items-center gap-3">
+           
+              <span className="relative z-10 flex items-center gap-3">
                Shop The Collection <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
              </span>
-           </Link>
           </motion.button>
+          </Link>
         </motion.div>
 
         {/* UX Scroll Indicator */}
@@ -247,8 +271,8 @@ const HomePage = () => {
       >
         <div className="px-12 mb-12 max-w-[1400px] mx-auto w-full">
           {/* Enhanced Typography Hierarchy */}
-          <div className="flex flex-col gap-3 border-b border-[#F5F1E8]/10 pb-6">
-             <h2 className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-[#D2B48C]">
+          <div className="flex flex-col gap-3 border-b border-[#F5F1E8]/10 pb-6"> 
+            <h2 className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-[#D2B48C]">
               Curated Collections
             </h2>
             <h3 className="text-4xl md:text-5xl font-light text-[#F5F1E8] tracking-wide">
@@ -340,6 +364,25 @@ const HomePage = () => {
           </div>
         </div>
       </motion.section>
+
+      {/* 6. Full-Stack Status Badge */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 pointer-events-none">
+        {apiStatus === 'loading' && (
+          <div className="bg-[#2C2420]/80 backdrop-blur-md border border-[#F5F1E8]/10 text-[#F5F1E8] px-4 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" /> Verifying Connection...
+          </div>
+        )}
+        {apiStatus === 'connected' && (
+          <div className="bg-[#2C2420]/80 backdrop-blur-md border border-[#A05D46]/30 text-[#F5F1E8] px-4 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> System Online: {ledgerData ? 'Ledger Active' : 'API OK'}
+          </div>
+        )}
+        {apiStatus === 'error' && (
+          <div className="bg-red-900/80 backdrop-blur-md border border-red-500/30 text-white px-4 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg pointer-events-auto cursor-help" title="Check if backend and Hardhat are running">
+            <span className="w-2 h-2 rounded-full bg-red-500" /> Connection Error
+          </div>
+        )}
+      </div>
 
     </div>
   );
