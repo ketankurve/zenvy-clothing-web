@@ -13,7 +13,7 @@ import { BackgroundLayer } from './BackgroundLayer';
 import { getAutomatedWeb3Data } from '../services/dataAutomation';
 
 // Import Web3 Service for Contract Interaction
-import { getBlockchainProvider } from '../services/web3Service';
+// import { getBlockchainProvider } from '../services/web3Service';
 
 import { apiRequest } from '../utils/api';
 import { useCart } from '../context/CartContext';
