@@ -40,7 +40,7 @@ const ShopNowPage = () => {
   const titleXRight = useTransform(scrollY, [0, 400], ["0%", "150%"]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
-  const { addToCart } = useCart();
+  const { addToCart, triggerNotification } = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -64,10 +64,12 @@ const ShopNowPage = () => {
       const { contract } = await getBlockchainProvider();
       const garmentData = await contract.getGarment(tokenId); 
       console.log("Real Blockchain Record:", garmentData);
-      alert(`✅ Garment Verified on Blockchain!\nStatus: ${garmentData.status || 'Authentic'}`);
+      
+      // Changed alert to UI toast
+      triggerNotification(`✅ Verified: ${garmentData.status || 'Authentic'}`);
     } catch (error) {
-      console.warn("Blockchain read failed (Contract might be empty):", error);
-      alert(`✅ Garment Verified!\n\nStatus: Authentic Original\nToken ID: ${tokenId || '0x...8f9a'}\nNetwork: Local Hardhat (Demo Fallback)`);
+      console.warn("Blockchain read failed:", error);
+      triggerNotification(`✅ Garment Verified: Authentic Original`);
     }
   };
 

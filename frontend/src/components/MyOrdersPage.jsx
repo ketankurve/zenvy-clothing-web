@@ -6,7 +6,8 @@ import { BackgroundOrders } from './BackgroundOrders';
 import { useOrders } from '../context/OrderContext';
 
 const MyOrdersPage = () => {
-  const { orders, refreshOrders } = useOrders(); // Ensure refreshOrders is available if needed
+  // Directly consume orders from context. No need for manual key hacks or extra loading state logic.
+  const { orders } = useOrders(); 
   const [loading, setLoading] = useState(true);
 
   // The 5-step milestone sequence
@@ -18,10 +19,10 @@ const MyOrdersPage = () => {
     { id: 'DELIVERED', label: 'Delivered', icon: CheckCircle2 }
   ];
 
-  // This effect runs whenever 'orders' changes in the Context
+  // The orders state is now reactive; as soon as OrderContext updates via polling,
+  // this component will re-render automatically.
   useEffect(() => {
-    // If orders is defined (even if empty array), we are done loading
-    if (orders !== undefined) {
+    if (orders && orders.length >= 0) {
       setLoading(false);
     }
   }, [orders]);
@@ -40,9 +41,7 @@ const MyOrdersPage = () => {
   }
 
   return (
-    // By using key={JSON.stringify(orders)}, we force a full component re-render 
-    // whenever the order status data changes, ensuring the UI is always fresh.
-    <div key={JSON.stringify(orders)} className="relative min-h-screen bg-[#2C2420] text-[#F5F1E8] font-sans selection:bg-[#F5F1E8] selection:text-[#2C2420]">
+    <div className="relative min-h-screen bg-[#2C2420] text-[#F5F1E8] font-sans selection:bg-[#F5F1E8] selection:text-[#2C2420]">
       <BackgroundOrders />
       
       <div className="relative z-10 px-4 md:px-12 py-32 max-w-[1000px] mx-auto min-h-screen flex flex-col">

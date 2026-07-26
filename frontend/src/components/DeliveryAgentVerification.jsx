@@ -1,32 +1,54 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Key, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { apiRequest } from '../utils/api';
-import { BackgroundLayer } from './BackgroundLayer';
 import { BackgroundDelivery } from './BackgroundDelivery';
+import { useLedger } from '../context/LedgerContext';
+import { generateOrderHash } from '../utils/crypto'; // Import the helper
 
 const DeliveryAgentVerification = () => {
   const [orderId, setOrderId] = useState('');
   const [hashSuffix, setHashSuffix] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
+  
+  const { addBlock } = useLedger();
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setVerifying(true);
+    setResult(null);
+
     try {
-        const response = await apiRequest(`/api/orders/verify`, {
-        method: 'POST',
-        // Change 'hashSuffix' to 'inputOtp' here:
-        body: JSON.stringify({ orderId, inputOtp: hashSuffix }) 
+        // 1. Validate the secret code against the backend
+        await apiRequest(`/api/orders/verify`, {
+          method: 'POST',
+          body: JSON.stringify({ orderId, inputOtp: hashSuffix }) 
         });
-        setResult({ success: true, message: "Delivery Verified Successfully!" });
+        
+        // 2. Cryptographic Handshake: Generate deterministic Termination Hash
+        // This will now match the Origin Hash generated during checkout via the shared helper
+        const terminationHash = generateOrderHash(orderId);
+        
+        // 3. Commit to Ledger
+        addBlock(
+          'DELIVERED_VERIFIED', 
+          `Handshake verified`,
+          terminationHash
+        );
+
+        setResult({ success: true, message: "Delivery Verified: Blockchain Handshake Complete." });
     } catch (error) {
-        setResult({ success: false, message: "Invalid Code or Order ID." });
+        // 4. Log Tamper Attempt if the verification fails
+        addBlock(
+          'TAMPER_ALERT', 
+          `Unauthorized verification attempt for ${orderId}. Handshake failed.`
+        );
+        setResult({ success: false, message: "Verification Failed: Hash mismatch or invalid code." });
     } finally {
         setVerifying(false);
     }
-    };
+  };
 
   return (
     <div className="relative min-h-screen bg-[#2C2420] text-[#F5F1E8] font-sans selection:bg-[#A05D46] selection:text-[#F5F1E8]">

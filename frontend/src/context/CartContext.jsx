@@ -3,21 +3,28 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const updateQty = (id, delta) => {
-        setCart(prev => prev.map(item => 
-            item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item
-        ));
-    };
-  // 1. Initialize state from localStorage (or empty array)
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem('zenvy_cart');
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
-  // 2. Persist to localStorage whenever the cart changes
+  const [notification, setNotification] = useState(null);
+
   useEffect(() => {
     localStorage.setItem('zenvy_cart', JSON.stringify(cart));
   }, [cart]);
+
+  // Unified function to trigger UI toasts from anywhere in the app
+  const triggerNotification = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const updateQty = (id, delta) => {
+    setCart(prev => prev.map(item => 
+      item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item
+    ));
+  };
 
   const addToCart = (product) => {
     setCart((prev) => {
@@ -33,14 +40,16 @@ export const CartProvider = ({ children }) => {
       }
       return [...prev, { ...product, price: cleanPrice, qty: 1 }];
     });
-    alert('🚀 Product added to your bag!');
+
+    triggerNotification('🚀 Product added to your bag!');
   };
 
-    const removeFromCart = (id) => {
+  const removeFromCart = (id) => {
     setCart(prev => prev.filter(item => item.id !== id));
-    };                  
+  };                    
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, notification, triggerNotification }}>
       {children}
     </CartContext.Provider>
   );
